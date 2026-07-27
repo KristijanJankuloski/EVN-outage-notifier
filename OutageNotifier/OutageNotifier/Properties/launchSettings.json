@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "OutageNotifier": {
+      "commandName": "Project"
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker"
+    }
+  }
+}
