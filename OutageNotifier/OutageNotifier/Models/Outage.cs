@@ -5,10 +5,10 @@ namespace OutageNotifier.Models;
 public sealed class Outage
 {
     [JsonPropertyName("prekinID")]
-    public int PrekinId { get; set; }
+    public string PrekinId { get; set; } = string.Empty;
 
     [JsonPropertyName("kecId")]
-    public string? KecId { get; set; }
+    public int? KecId { get; set; }
 
     [JsonPropertyName("tipPrekin")]
     public string? TipPrekin { get; set; }

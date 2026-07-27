@@ -42,8 +42,22 @@ on the host, next to `docker-compose.yml`.
 ### 3. Prepare the data directory
 
 The `data/` folder (already present in the repo) is where the SQLite database
-persists across runs. No setup needed - Docker creates `data/outages.db`
-inside it on first run.
+persists across runs. Docker creates `data/outages.db` inside it on first run.
+
+**On a real Linux host, this directory must be writable by the container's
+user before the first run.** The image runs as a fixed non-root user
+(UID 1654, baked into the `mcr.microsoft.com/dotnet/runtime:10.0` base
+image), and a bind-mounted host directory keeps its real host ownership and
+permissions - so unless it happens to be owned by UID 1654, the container
+can't write `outages.db` into it, and the app fails with a SQLite "unable to
+open database file" error. Fix it once, before the first run:
+
+```bash
+sudo chown 1654:1654 data
+```
+
+(This step isn't needed on Docker Desktop for Mac/Windows - its bind-mount
+translation layer already presents mounted directories as writable.)
 
 ### 4. Do a manual test run
 

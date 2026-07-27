@@ -69,10 +69,10 @@ namespace OutageNotifier.Models;
 public sealed class Outage
 {
     [JsonPropertyName("prekinID")]
-    public int PrekinId { get; set; }
+    public string PrekinId { get; set; } = string.Empty;
 
     [JsonPropertyName("kecId")]
-    public string? KecId { get; set; }
+    public int? KecId { get; set; }
 
     [JsonPropertyName("tipPrekin")]
     public string? TipPrekin { get; set; }
@@ -93,6 +93,8 @@ public sealed class Outage
     public string? NapNivo { get; set; }
 }
 ```
+
+**Post-scaffold correction:** the real EVN API returns `prekinID` as a GUID string (e.g. `"469a08a7-c000-433d-9cef-b200767464ed"`), not an integer, and `kecId` as a real JSON number - the reverse of what was originally assumed here from the field list in `CLAUDE.md` alone. Confirmed directly against the live endpoint (`https://portal-api.elektrodistribucija.mk/DSO/Prekini/ZemiPrekini`) across all 129 records at the time of testing. `PrekinId` is `string`, `KecId` is `int?`; `INotifiedOutageStore`/`SqliteNotifiedOutageStore` (Task 5) use `string` for `PrekinId` throughout (`TEXT PRIMARY KEY` column, `GetString` instead of `GetInt32`) to match.
 
 - [ ] **Step 2: Register the folder in the csproj so it shows up in Visual Studio**
 
@@ -349,7 +351,7 @@ Expected: `Build succeeded.`
 
 **Interfaces:**
 - Consumes: `OutageNotifier.Configuration.DatabaseOptions` (Task 3).
-- Produces: `INotifiedOutageStore` with `EnsureSchemaAsync(CancellationToken) : Task`, `GetNotifiedIdsAsync(CancellationToken) : Task<HashSet<int>>`, `MarkNotifiedAsync(IReadOnlyCollection<int> prekinIds, DateTimeOffset notifiedAtUtc, CancellationToken) : Task` — consumed by `OutageNotifierRunner` (Task 8).
+- Produces: `INotifiedOutageStore` with `EnsureSchemaAsync(CancellationToken) : Task`, `GetNotifiedIdsAsync(CancellationToken) : Task<HashSet<string>>`, `MarkNotifiedAsync(IReadOnlyCollection<string> prekinIds, DateTimeOffset notifiedAtUtc, CancellationToken) : Task` - consumed by `OutageNotifierRunner` (Task 8).
 
 - [ ] **Step 1: Write the interface**
 
@@ -360,9 +362,9 @@ public interface INotifiedOutageStore
 {
     Task EnsureSchemaAsync(CancellationToken cancellationToken);
 
-    Task<HashSet<int>> GetNotifiedIdsAsync(CancellationToken cancellationToken);
+    Task<HashSet<string>> GetNotifiedIdsAsync(CancellationToken cancellationToken);
 
-    Task MarkNotifiedAsync(IReadOnlyCollection<int> prekinIds, DateTimeOffset notifiedAtUtc, CancellationToken cancellationToken);
+    Task MarkNotifiedAsync(IReadOnlyCollection<string> prekinIds, DateTimeOffset notifiedAtUtc, CancellationToken cancellationToken);
 }
 ```
 
@@ -393,14 +395,14 @@ public sealed class SqliteNotifiedOutageStore : INotifiedOutageStore
         command.CommandText =
             """
             CREATE TABLE IF NOT EXISTS NotifiedOutages (
-                PrekinId INTEGER PRIMARY KEY,
+                PrekinId TEXT PRIMARY KEY,
                 NotifiedAtUtc TEXT NOT NULL
             );
             """;
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
-    public async Task<HashSet<int>> GetNotifiedIdsAsync(CancellationToken cancellationToken)
+    public async Task<HashSet<string>> GetNotifiedIdsAsync(CancellationToken cancellationToken)
     {
         await using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync(cancellationToken);
@@ -408,17 +410,17 @@ public sealed class SqliteNotifiedOutageStore : INotifiedOutageStore
         await using var command = connection.CreateCommand();
         command.CommandText = "SELECT PrekinId FROM NotifiedOutages;";
 
-        var ids = new HashSet<int>();
+        var ids = new HashSet<string>();
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken))
         {
-            ids.Add(reader.GetInt32(0));
+            ids.Add(reader.GetString(0));
         }
 
         return ids;
     }
 
-    public async Task MarkNotifiedAsync(IReadOnlyCollection<int> prekinIds, DateTimeOffset notifiedAtUtc, CancellationToken cancellationToken)
+    public async Task MarkNotifiedAsync(IReadOnlyCollection<string> prekinIds, DateTimeOffset notifiedAtUtc, CancellationToken cancellationToken)
     {
         await using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync(cancellationToken);
@@ -919,7 +921,7 @@ Expected: prints the resolved service definition with no errors (confirms the bi
 ## Self-Review Notes
 
 - **Spec coverage:** every numbered step in the design's "Execution flow" section maps to a task — logging (Task 9), config load/validate (Tasks 3, 9), schema ensure (Task 5), API fetch (Task 6), dedup+match (Tasks 4, 5, 8), no-match short-circuit (Task 8), consolidated HTML email (Task 7), send-then-persist ordering (Task 8), exit codes (Task 9), Docker Compose deployment (Task 10).
-- **Type consistency checked:** `Outage.PrekinId` (Task 2) matches the `int` used in `INotifiedOutageStore` (Task 5) and `OutageMatcher`/`OutageNotifierRunner`. `MatchRule` (Task 3) is the same type referenced in `IOutageMatcher` (Task 4) and bound as `IReadOnlyList<MatchRule>` in `Program.cs` (Task 9) and consumed identically in `OutageNotifierRunner` (Task 8).
+- **Type consistency checked:** `Outage.PrekinId` (Task 2) matches the `string` used in `INotifiedOutageStore` (Task 5) and `OutageMatcher`/`OutageNotifierRunner`. `MatchRule` (Task 3) is the same type referenced in `IOutageMatcher` (Task 4) and bound as `IReadOnlyList<MatchRule>` in `Program.cs` (Task 9) and consumed identically in `OutageNotifierRunner` (Task 8).
 - **No test project:** intentional per the approved spec; verification throughout is `dotnet build` plus the two manual checks in Tasks 9 and 10.
 - **No commits:** every task ends at its last verification step — no git steps are included anywhere in this plan, per explicit instruction.
 - **Folder visibility:** Tasks 2, 3, and 4 (the first task to populate each of `Models/`, `Configuration/`, `Services/`) each add a `<Folder Include>` item to `OutageNotifier.csproj` so the new folders render in Visual Studio's Solution Explorer immediately, not just after a reload.

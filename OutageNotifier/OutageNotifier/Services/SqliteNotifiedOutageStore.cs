@@ -22,14 +22,14 @@ public sealed class SqliteNotifiedOutageStore : INotifiedOutageStore
         command.CommandText =
             """
             CREATE TABLE IF NOT EXISTS NotifiedOutages (
-                PrekinId INTEGER PRIMARY KEY,
+                PrekinId TEXT PRIMARY KEY,
                 NotifiedAtUtc TEXT NOT NULL
             );
             """;
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
-    public async Task<HashSet<int>> GetNotifiedIdsAsync(CancellationToken cancellationToken)
+    public async Task<HashSet<string>> GetNotifiedIdsAsync(CancellationToken cancellationToken)
     {
         await using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync(cancellationToken);
@@ -37,17 +37,17 @@ public sealed class SqliteNotifiedOutageStore : INotifiedOutageStore
         await using var command = connection.CreateCommand();
         command.CommandText = "SELECT PrekinId FROM NotifiedOutages;";
 
-        var ids = new HashSet<int>();
+        var ids = new HashSet<string>();
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken))
         {
-            ids.Add(reader.GetInt32(0));
+            ids.Add(reader.GetString(0));
         }
 
         return ids;
     }
 
-    public async Task MarkNotifiedAsync(IReadOnlyCollection<int> prekinIds, DateTimeOffset notifiedAtUtc, CancellationToken cancellationToken)
+    public async Task MarkNotifiedAsync(IReadOnlyCollection<string> prekinIds, DateTimeOffset notifiedAtUtc, CancellationToken cancellationToken)
     {
         await using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync(cancellationToken);
