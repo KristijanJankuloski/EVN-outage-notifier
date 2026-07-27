@@ -427,3 +427,8 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Outage Notifier runtime config/data (real appsettings.json holds SMTP credentials)
+/appsettings.json
+/data/*
+!/data/.gitkeep

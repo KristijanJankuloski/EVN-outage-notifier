@@ -1,0 +1,9 @@
+services:
+  outage-notifier:
+    image: jankuloskik/evn-outage-notifier
+    build:
+      context: ./OutageNotifier
+      dockerfile: OutageNotifier/Dockerfile
+    volumes:
+      - ./appsettings.json:/app/appsettings.json:ro
+      - ./data:/data
