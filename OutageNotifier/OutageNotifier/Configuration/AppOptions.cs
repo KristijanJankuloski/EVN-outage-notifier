@@ -25,7 +25,7 @@ public sealed class EmailOptions
     public string Password { get; set; } = string.Empty;
     public string From { get; set; } = string.Empty;
     public List<string> To { get; set; } = new();
-    public string Subject { get; set; } = "EVN Outage Notification";
+    public string Subject { get; set; } = "Известување за прекин на електро дистрибуција";
 }
 
 public sealed class MatchRule

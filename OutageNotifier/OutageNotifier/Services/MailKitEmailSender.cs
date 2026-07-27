@@ -49,9 +49,10 @@ public sealed class MailKitEmailSender : IEmailSender
     private static string BuildHtmlBody(IReadOnlyList<Outage> outages)
     {
         var sb = new StringBuilder();
-        sb.Append("<h2>New Outage Notifications</h2>");
+        sb.Append("<meta charset=\"utf-8\">");
+        sb.Append("<h2>Нови известувања за прекини</h2>");
         sb.Append("<table border=\"1\" cellpadding=\"6\" cellspacing=\"0\">");
-        sb.Append("<tr><th>Type</th><th>Nas. Mesto</th><th>Adresa</th><th>Nap. Nivo</th><th>Pocetok</th><th>Kraj</th></tr>");
+        sb.Append("<tr><th>Тип</th><th>Населено место</th><th>Адреса</th><th>Напонско ниво</th><th>Почеток</th><th>Крај</th></tr>");
 
         foreach (var outage in outages)
         {
