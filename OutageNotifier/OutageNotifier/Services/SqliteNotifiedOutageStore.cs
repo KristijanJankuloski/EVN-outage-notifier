@@ -67,7 +67,8 @@ public sealed class SqliteNotifiedOutageStore : INotifiedOutageStore
             await deleteCommand.ExecuteNonQueryAsync(cancellationToken);
         }
 
-        if (prekinIds.Count > 0)
+        var distinctPrekinIds = prekinIds.Distinct().ToList();
+        if (distinctPrekinIds.Count > 0)
         {
             await using var insertCommand = connection.CreateCommand();
             insertCommand.Transaction = transaction;
@@ -82,7 +83,7 @@ public sealed class SqliteNotifiedOutageStore : INotifiedOutageStore
             notifiedAtParam.Value = notifiedAtUtc.ToString("O");
             insertCommand.Parameters.Add(notifiedAtParam);
 
-            foreach (var id in prekinIds)
+            foreach (var id in distinctPrekinIds)
             {
                 prekinIdParam.Value = id;
                 await insertCommand.ExecuteNonQueryAsync(cancellationToken);
