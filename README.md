@@ -9,6 +9,8 @@ triggered by a host cron job - it does not schedule itself.
 
 ### 1. Get the image
 
+Docker hub: https://hub.docker.com/repository/docker/jankuloskik/evn-outage-notifier/general
+
 Pull the published image:
 
 ```bash
